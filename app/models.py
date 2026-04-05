@@ -42,6 +42,8 @@ class Record(Base):
     category = Column(Enum(FinancialCategory),default=FinancialCategory.OTHER, nullable=False)
     date = Column(DateTime, default=datetime.datetime.utcnow)
     description = Column(String)
+
+    is_deleted = Column(Boolean, default=False, nullable=False)
     
     user_id = Column(Integer, ForeignKey("users.id"),index=True,nullable=False)
     owner = relationship("User", back_populates="records")
