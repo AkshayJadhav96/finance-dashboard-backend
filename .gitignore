@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+
+# Env files
+.env
+
+# Virtual environments
+venv/
+.env/
+
+# UV (since you mentioned uv.lock)
+uv.lock
+
+# Logs
+*.log
+
+# Database
+*.db
+
+# IDE
+.vscode/
+.idea/
