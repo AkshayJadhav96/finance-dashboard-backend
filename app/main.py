@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
-from typing import List
+from typing import List, Optional
 
 from . import models, schemas, crud, auth, database
 
@@ -39,19 +39,35 @@ def create_record(
 
 @app.get("/records/", response_model=List[schemas.Record])
 def read_records(
-    category: str = None, 
-    record_type: str = None,
+    skip: int = 0, limit: int = 10,
+    category: Optional[models.FinancialCategory] = None, 
+    record_type: Optional[models.RecordType] = None,
+    search: Optional[str] = None,
+    global_view: bool = False,
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    return crud.get_records(db, user_id=current_user.id, category=category, record_type=record_type)
+    if global_view and current_user.role == models.UserRole.VIEWER:
+         raise HTTPException(status_code=403, detail="Viewers cannot access detailed company-wide records.")
+         
+    return crud.get_records(
+        db, user=current_user, skip=skip, limit=limit, 
+        category=category, record_type=record_type, search=search, global_view=global_view
+    )
 
-@app.get("/dashboard/summary")
-def get_summary(
+@app.get("/dashboard/my-summary")
+def get_personal_summary(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user)
 ):
-    return crud.get_dashboard_summary(db, user_id=current_user.id)
+    return crud.get_dashboard_summary(db, user_id=current_user.id, global_view=False)
+
+@app.get("/dashboard/company-summary")
+def get_company_summary(
+    db: Session = Depends(database.get_db),
+    current_user: models.User = Depends(auth.get_current_user) 
+):
+    return crud.get_dashboard_summary(db, user_id=current_user.id, global_view=True)
 
 @app.put("/records/{record_id}", response_model=schemas.Record)
 def update_record(

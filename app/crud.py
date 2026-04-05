@@ -25,42 +25,47 @@ def create_record(db: Session, record: schemas.RecordCreate, user_id: int):
     db.refresh(db_record)
     return db_record
 
-def get_records(db: Session, user_id: int, category: str = None, record_type: str = None):
-    query = db.query(models.Record).filter(models.Record.user_id == user_id,models.Record.is_deleted == False)
+def get_records(db: Session, user: models.User, skip: int = 0, limit: int = 10, 
+                category: str = None, record_type: str = None, search: str = None, global_view: bool = False):
     
+    query = db.query(models.Record).filter(models.Record.is_deleted == False)
+    
+    if not global_view:
+        query = query.filter(models.Record.user_id == user.id)
+    
+    elif user.role == models.UserRole.VIEWER:
+        return []
+
+    if search:
+        query = query.filter(models.Record.description.ilike(f"%{search}%"))
     if category:
         query = query.filter(models.Record.category == category)
     if record_type:
         query = query.filter(models.Record.type == record_type)
         
-    return query.all()
+    return query.offset(skip).limit(limit).all()
 
-def get_dashboard_summary(db: Session, user_id: int):
+def get_dashboard_summary(db: Session, user_id: int, global_view: bool = False):
 
-    # 1. Calculate Total Income
+    base_filter = [models.Record.is_deleted == False]
+    if not global_view:
+        base_filter.append(models.Record.user_id == user_id)
+
     total_income = db.query(func.sum(models.Record.amount)).filter(
-        models.Record.user_id == user_id, 
-        models.Record.type == models.RecordType.INCOME,
-        models.Record.is_deleted == False
+        *base_filter, models.Record.type == models.RecordType.INCOME
     ).scalar() or 0.0
 
-    # 2. Calculate Total Expense
     total_expense = db.query(func.sum(models.Record.amount)).filter(
-        models.Record.user_id == user_id, 
-        models.Record.type == models.RecordType.EXPENSE,
-        models.Record.is_deleted == False
+        *base_filter, models.Record.type == models.RecordType.EXPENSE
     ).scalar() or 0.0
 
-    # 3. Category-wise Totals 
     category_totals = db.query(
         models.Record.category, 
         func.sum(models.Record.amount)
-    ).filter(
-        models.Record.user_id == user_id,
-        models.Record.is_deleted == False
-    ).group_by(models.Record.category).all()
+    ).filter(*base_filter).group_by(models.Record.category).all()
 
     return {
+        "scope": "Company-Wide" if global_view else "Personal",
         "total_income": total_income,
         "total_expense": total_expense,
         "net_balance": total_income - total_expense,
