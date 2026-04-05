@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from datetime import datetime
 from . import models, schemas, auth
 
 def get_user_by_email(db: Session, email: str):
@@ -26,7 +27,8 @@ def create_record(db: Session, record: schemas.RecordCreate, user_id: int):
     return db_record
 
 def get_records(db: Session, user: models.User, skip: int = 0, limit: int = 10, 
-                category: str = None, record_type: str = None, search: str = None, global_view: bool = False):
+                category: str = None, record_type: str = None, search: str = None, global_view: bool = False,
+                start_date: datetime = None, end_date: datetime = None):
     
     query = db.query(models.Record).filter(models.Record.is_deleted == False)
     
@@ -35,6 +37,11 @@ def get_records(db: Session, user: models.User, skip: int = 0, limit: int = 10,
     
     elif user.role == models.UserRole.VIEWER:
         return []
+    
+    if start_date:
+        query = query.filter(models.Record.date >= start_date)
+    if end_date:
+        query = query.filter(models.Record.date <= end_date)
 
     if search:
         query = query.filter(models.Record.description.ilike(f"%{search}%"))
