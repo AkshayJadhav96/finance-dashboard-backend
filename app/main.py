@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import timedelta,datetime
 from typing import List, Optional
 
 from . import models, schemas, crud, auth, database
@@ -43,6 +43,8 @@ def read_records(
     category: Optional[models.FinancialCategory] = None, 
     record_type: Optional[models.RecordType] = None,
     search: Optional[str] = None,
+    start_date: Optional[datetime] = None, 
+    end_date: Optional[datetime] = None,
     global_view: bool = False,
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_user)
@@ -52,7 +54,8 @@ def read_records(
          
     return crud.get_records(
         db, user=current_user, skip=skip, limit=limit, 
-        category=category, record_type=record_type, search=search, global_view=global_view
+        category=category, record_type=record_type, search=search,
+        global_view=global_view, start_date=start_date,end_date=end_date
     )
 
 @app.get("/dashboard/my-summary")

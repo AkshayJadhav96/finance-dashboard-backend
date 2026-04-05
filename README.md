@@ -33,7 +33,7 @@ Developed as part of the **Zorvyn Backend Developer Internship Assignment**.
 * Advanced querying:
 
   * Pagination (`skip`, `limit`)
-  * Filtering (`category`, `type`)
+  * Filtering (`category`, `type`, `date range`)
   * Case-insensitive search
 
 ---
